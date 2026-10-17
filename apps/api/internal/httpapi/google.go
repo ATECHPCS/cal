@@ -6,6 +6,7 @@ package httpapi
 // report not-configured rather than failing obscurely.
 
 import (
+	"log"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -117,7 +118,10 @@ func (s *Server) googleCallback(c *gin.Context) {
 		return
 	}
 	if err := s.googleExchange(c.Request.Context(), userID, code, apiOrigin(c)+"/api/google/callback"); err != nil {
-		c.String(http.StatusBadGateway, "token exchange failed: "+err.Error())
+		// 500, not 502: Cloudflare (and most CDNs) replace an origin 502 with
+		// their own error page, which hid this message entirely.
+		log.Printf("google callback: exchange failed for user %s: %v", userID, err)
+		c.String(http.StatusInternalServerError, "token exchange failed: "+err.Error())
 		return
 	}
 	go func() { _ = s.syncGoogle(context.Background(), userID) }()
