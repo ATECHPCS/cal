@@ -36,11 +36,11 @@ func googleCreds() (string, string, bool) {
 // (Google's redirect is a top-level GET that carries no cookie context we can
 // rely on across browsers).
 func (s *Server) oauthState(ctx context.Context, userID string) (string, error) {
-	key, err := s.store.Encrypt(ctx, "state") // reuse the crypto key's persistence
+	key, err := s.store.MACKey(ctx, "google-oauth-state")
 	if err != nil {
 		return "", err
 	}
-	mac := hmac.New(sha256.New, []byte(key))
+	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte(userID))
 	return userID + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil)), nil
 }

@@ -9,6 +9,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 )
@@ -26,6 +27,21 @@ func (s *Store) cryptoKey(ctx context.Context) ([]byte, error) {
 		return nil, err
 	}
 	return key, nil
+}
+
+// MACKey returns a stable per-instance key for HMAC signing (OAuth state etc.).
+// Derived from the persisted crypto key so it survives restarts and is the
+// same on every call — unlike Encrypt, whose random nonce makes its output
+// unusable as a signing key.
+func (s *Store) MACKey(ctx context.Context, purpose string) ([]byte, error) {
+	key, err := s.cryptoKey(ctx)
+	if err != nil {
+		return nil, err
+	}
+	h := sha256.New()
+	h.Write(key)
+	h.Write([]byte("mac:" + purpose))
+	return h.Sum(nil), nil
 }
 
 func (s *Store) Encrypt(ctx context.Context, plaintext string) (string, error) {
