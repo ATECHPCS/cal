@@ -36,6 +36,10 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           importScripts: ["/sw-push.js"],
+          // Never serve the app shell for API navigations: OAuth callbacks
+          // (/api/google/callback), file shares and ICS exports are top-level
+          // navigations that must reach the server, not the cached index.html.
+          navigateFallbackDenylist: [/^\/api\//],
           runtimeCaching: [
             {
               urlPattern: ({ url }) => url.pathname.startsWith("/api/entries") || url.pathname.startsWith("/api/holidays"),
