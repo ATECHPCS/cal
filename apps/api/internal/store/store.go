@@ -1131,6 +1131,12 @@ func (s *Store) UpdateGoogleAccess(ctx context.Context, userID, accessEnc string
 	return err
 }
 
+// SetGoogleFeed points the token row at the primary calendar's feed.
+func (s *Store) SetGoogleFeed(ctx context.Context, userID, feedID string) error {
+	_, err := s.db.Exec(ctx, `UPDATE google_tokens SET feed_id = $2 WHERE user_id = $1`, userID, feedID)
+	return err
+}
+
 func (s *Store) DeleteGoogleToken(ctx context.Context, userID string) error {
 	_, err := s.db.Exec(ctx, `DELETE FROM google_tokens WHERE user_id = $1`, userID)
 	return err
@@ -1287,6 +1293,13 @@ func (s *Store) CreateFeed(ctx context.Context, userID, name, url, color, kind, 
 		RETURNING id::text, name, url, color, kind, fetched_at
 	`, uuid.NewString(), userID, name, url, color, kind, ics).Scan(&f.ID, &f.Name, &f.URL, &f.Color, &f.Kind, &f.FetchedAt)
 	return f, err
+}
+
+// UpdateFeedMeta renames/recolours a feed (used by Google sync to mirror
+// calendar names and colours chosen in Google).
+func (s *Store) UpdateFeedMeta(ctx context.Context, userID, id, name, color string) error {
+	_, err := s.db.Exec(ctx, `UPDATE feeds SET name = $3, color = $4 WHERE id = $1 AND user_id = $2`, id, userID, name, color)
+	return err
 }
 
 func (s *Store) DeleteFeed(ctx context.Context, userID, id string) error {

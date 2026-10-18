@@ -6,7 +6,6 @@ package httpapi
 // report not-configured rather than failing obscurely.
 
 import (
-	"log"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -14,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -209,11 +209,22 @@ func (s *Server) syncGoogle(ctx context.Context, userID string) error {
 		enc, _ := s.store.Encrypt(ctx, access)
 		_ = s.store.UpdateGoogleAccess(ctx, userID, enc, time.Now().Add(time.Duration(out.Expires)*time.Second))
 	}
-	ics, err := fetchGoogleICS(ctx, access, tok.CalendarID)
+	// Fork: sync every selected calendar as its own feed. If the calendar
+	// list can't be read, fall back to upstream's single-calendar behaviour.
+	cals, err := fetchGoogleCalendarList(ctx, access)
 	if err != nil {
-		return err
+		log.Printf("google sync: calendarList for user %s: %v (falling back to primary)", userID, err)
+		ics, err := fetchGoogleICS(ctx, access, tok.CalendarID)
+		if err != nil {
+			return err
+		}
+		return s.store.RefreshFeedCache(ctx, userID, tok.FeedID, ics)
 	}
-	return s.store.RefreshFeedCache(ctx, userID, tok.FeedID, ics)
+	primaryID, err := s.syncGoogleCalendars(ctx, userID, access, cals)
+	if primaryID != "" && primaryID != tok.FeedID {
+		_ = s.store.SetGoogleFeed(ctx, userID, primaryID)
+	}
+	return err
 }
 
 // fetchGoogleICS pulls a ±window of events and serialises them as ICS.
@@ -325,6 +336,7 @@ func GoogleSyncLoop(ctx context.Context, s *store.Store, every time.Duration) {
 		for _, t := range tokens {
 			if err := server.syncGoogle(ctx, t.UserID); err != nil {
 				// log only — a revoked token shouldn't stall the loop
+				log.Printf("google sync: user %s: %v", t.UserID, err)
 			}
 		}
 	}
@@ -356,12 +368,10 @@ func (s *Server) googleSyncNow(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// googleDisconnect removes tokens + the synthetic feed.
+// googleDisconnect removes tokens + every Google-backed feed.
 func (s *Server) googleDisconnect(c *gin.Context) {
 	userID := currentUser(c).ID
-	if tok, err := s.store.GoogleToken(c.Request.Context(), userID); err == nil && tok.FeedID != "" {
-		_ = s.store.DeleteFeed(c.Request.Context(), userID, tok.FeedID)
-	}
+	s.deleteGoogleFeeds(c.Request.Context(), userID)
 	_ = s.store.DeleteGoogleToken(c.Request.Context(), userID)
 	c.Status(http.StatusNoContent)
 }

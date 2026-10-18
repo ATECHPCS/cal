@@ -664,7 +664,7 @@ export function SettingsPage() {
           <h3>Google Calendar</h3>
           {google === undefined ? null : google.connected ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span className="feed-name">Connected — events sync every 15 min as the "Google" feed.</span>
+              <span className="feed-name">Connected — every calendar you have selected in Google syncs every 15 min as its own feed (primary = "Google").</span>
               <span className="spacer" style={{ flex: 1 }} />
               <button
                 type="button"
@@ -695,8 +695,8 @@ export function SettingsPage() {
             <div>
               <p className="panel-note">
                 Requires <code>GOOGLE_CLIENT_ID</code>/<code>GOOGLE_CLIENT_SECRET</code> on the API
-                (Google Cloud → OAuth consent → Calendar read scope). Events sync read-only into a
-                "Google" feed — toggleable like any other feed.
+                (Google Cloud → OAuth consent → Calendar read scope). Each selected calendar syncs read-only
+                into its own feed — toggleable like any other feed.
               </p>
               <button
                 type="button"
