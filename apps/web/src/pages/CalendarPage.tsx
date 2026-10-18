@@ -3,6 +3,7 @@ import { MonthView } from "../components/MonthView";
 import { TimeGridView } from "../components/TimeGridView";
 import { TopBar } from "../components/TopBar";
 import { rangeFor } from "../lib/date";
+import { isCompletedFeedTask } from "../lib/dayItems";
 import { moduleOn } from "../lib/modules";
 import { personDatesInRange } from "../lib/people";
 import { usePlanner } from "../stores/planner";
@@ -45,7 +46,9 @@ export function CalendarPage() {
   const visible = entries.filter(
     (entry) => !hiddenTypes.has(entry.type) && !(hideCompleted && entry.type === "task" && entry.completed),
   );
-  const visibleFeeds = feedEvents.filter((event) => !hiddenFeeds.has(event.feedId));
+  const visibleFeeds = feedEvents.filter(
+    (event) => !hiddenFeeds.has(event.feedId) && !(hideCompleted && isCompletedFeedTask(event)),
+  );
   const shownHolidays = settings.showHolidays ? holidays : [];
 
   // Birthdays/anniversaries expand client-side — they recur yearly, so any

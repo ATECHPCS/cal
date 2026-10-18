@@ -228,7 +228,7 @@ export function Sidebar() {
             type="button"
             className={`filter-item ${hideCompleted ? "off" : ""}`}
             onClick={toggleHideCompleted}
-            title={hideCompleted ? "Show completed tasks" : "Hide completed tasks"}
+            title={hideCompleted ? "Show completed tasks (Cal and Todoist)" : "Hide completed tasks (Cal and Todoist)"}
           >
             <span className="swatch" style={{ "--swatch": "var(--c-slate)" } as React.CSSProperties} />
             Completed tasks

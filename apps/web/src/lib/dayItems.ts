@@ -24,6 +24,11 @@ function feedKey(event: FeedEvent): string {
   return `${title}|${event.startTime ?? ""}|${event.endTime ?? ""}`;
 }
 
+// Todoist's calendar feed marks finished tasks with a leading check mark.
+export function isCompletedFeedTask(event: FeedEvent): boolean {
+  return /^\s*[✓✔☑]/u.test(event.title);
+}
+
 export function dedupeFeedEvents(events: FeedEvent[]): { event: FeedEvent; copies: FeedEvent[] }[] {
   const groups = new Map<string, FeedEvent[]>();
   for (const event of events) {

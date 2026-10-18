@@ -1,6 +1,6 @@
 import type { Entry, FeedEvent } from "@cal/api-client";
 import { describe, expect, it } from "vitest";
-import { buildDayItems, dedupeFeedEvents, visibleCount } from "./dayItems";
+import { buildDayItems, dedupeFeedEvents, isCompletedFeedTask, visibleCount } from "./dayItems";
 import type { PersonOccurrence } from "./people";
 
 const entry = (over: Partial<Entry>): Entry => ({
@@ -55,6 +55,13 @@ describe("dedupeFeedEvents", () => {
     ]);
     expect(groups.map((g) => g.copies.map((c) => c.id))).toEqual([["a", "b"], ["c"]]);
     expect(groups[0].event.id).toBe("a");
+  });
+});
+
+describe("isCompletedFeedTask", () => {
+  it("detects Todoist's done marker", () => {
+    expect(isCompletedFeedTask(feed({ title: "✓ Pay rent" }))).toBe(true);
+    expect(isCompletedFeedTask(feed({ title: "Pay rent ✓" }))).toBe(false);
   });
 });
 
