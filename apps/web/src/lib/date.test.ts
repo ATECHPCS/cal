@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { iso, minutesToTime, monthMatrix, rangeFor, startOfWeek, timeToMinutes, weekDays } from "./date";
+import { formatTime, formatTimeShort, iso, minutesToTime, monthMatrix, rangeFor, startOfWeek, timeToMinutes, weekDays } from "./date";
 
 describe("date helpers", () => {
   it("builds Monday-first weeks", () => {
@@ -46,5 +46,14 @@ describe("date helpers", () => {
     const sun = startOfWeek(new Date(2026, 4, 13), "sunday");
     expect(iso(mon)).toBe("2026-05-11");
     expect(iso(sun)).toBe("2026-05-10");
+  });
+});
+
+describe("formatTimeShort", () => {
+  const twelveHour = /PM/i.test(formatTime("13:00"));
+  it("drops :00 and shortens am/pm on 12-hour locales", () => {
+    if (!twelveHour) return expect(formatTimeShort("14:30")).toBe(formatTime("14:30"));
+    expect(formatTimeShort("09:00")).toBe("9a");
+    expect(formatTimeShort("14:30")).toBe("2:30p");
   });
 });

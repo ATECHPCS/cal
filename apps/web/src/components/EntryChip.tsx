@@ -2,13 +2,23 @@ import type { Entry } from "@cal/api-client";
 import { CalendarClock, Check, Link2, Repeat, StickyNote } from "lucide-react";
 import { useState } from "react";
 import { startEntryDrag } from "../lib/dnd";
-import { formatTime } from "../lib/date";
+import { formatTime, formatTimeShort } from "../lib/date";
 import { usePlanner } from "../stores/planner";
 import { useUi } from "../stores/ui";
 
 const typeIcon = { task: Check, note: StickyNote, link: Link2, event: CalendarClock } as const;
 
-export function EntryChip({ entry, showTime = true }: { entry: Entry; showTime?: boolean }) {
+export function EntryChip({
+  entry,
+  showTime = true,
+  shortTime = false,
+  className = "",
+}: {
+  entry: Entry;
+  showTime?: boolean;
+  shortTime?: boolean;
+  className?: string;
+}) {
   const openEdit = useUi((state) => state.openEdit);
   const setContextMenu = useUi((state) => state.setContextMenu);
   const updateEntry = usePlanner((state) => state.updateEntry);
@@ -18,7 +28,7 @@ export function EntryChip({ entry, showTime = true }: { entry: Entry; showTime?:
   return (
     <button
       type="button"
-      className={`entry-chip color-${entry.color} ${entry.completed ? "done" : ""} ${dragging ? "dragging" : ""}`}
+      className={`entry-chip color-${entry.color} ${entry.completed ? "done" : ""} ${dragging ? "dragging" : ""} ${className}`}
       draggable
       onDragStart={(event) => {
         setDragging(true);
@@ -53,7 +63,7 @@ export function EntryChip({ entry, showTime = true }: { entry: Entry; showTime?:
           />
         )}
       </span>
-      {showTime && entry.startTime && <span className="time">{formatTime(entry.startTime)}</span>}
+      {showTime && entry.startTime && <span className="time">{shortTime ? formatTimeShort(entry.startTime) : formatTime(entry.startTime)}</span>}
       <span className="title">{entry.title}</span>
       {entry.recur !== "none" && <Repeat size={10} className="rep" />}
       {entry.type === "link" && <Link2 size={10} className="rep" />}

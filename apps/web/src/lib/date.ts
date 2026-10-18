@@ -110,6 +110,15 @@ export function formatTime(time: string): string {
   return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+/** Compact time for tight spaces: "9a", "2:30p" on 12-hour locales; "14:30" otherwise. */
+export function formatTimeShort(time: string): string {
+  const full = formatTime(time);
+  const match = full.match(/^(\d{1,2})(?::(\d{2}))?\s*([AaPp])\.?\s?[Mm]\.?$/);
+  if (!match) return full;
+  const [, hour, minutes, half] = match;
+  return `${hour}${minutes && minutes !== "00" ? `:${minutes}` : ""}${half.toLowerCase()}`;
+}
+
 export function sameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }

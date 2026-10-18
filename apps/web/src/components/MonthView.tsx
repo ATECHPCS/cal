@@ -1,9 +1,10 @@
 import type { Entry, FeedEvent, Holiday } from "@cal/api-client";
 import { Plus, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { draggedEntryId, dropTargetProps } from "../lib/dnd";
-import { formatDayTitle, formatTime, iso, monthMatrix, timeToMinutes, todayIso, weekdayNames, type WeekStartPref } from "../lib/date";
+import { formatDayTitle, formatTime, formatTimeShort, iso, monthMatrix, timeToMinutes, todayIso, weekdayNames, type WeekStartPref } from "../lib/date";
 import type { PersonOccurrence } from "../lib/people";
+import { buildDayItems, visibleCount, type DayItem } from "../lib/dayItems";
 import { useUi } from "../stores/ui";
 import { EntryChip } from "./EntryChip";
 import { PersonChip } from "./PersonChip";
@@ -18,7 +19,34 @@ interface Props {
   onMoveEntry: (id: string, date: string) => void;
 }
 
-const MAX_VISIBLE = 4;
+// Fallback before the first measurement; the real row count comes from the cell height.
+const DEFAULT_CAPACITY = 4;
+
+function FeedChip({ item, compact, className = "" }: { item: Extract<DayItem, { kind: "feed" }>; compact: boolean; className?: string }) {
+  const { event, copies } = item;
+  const feeds = [...new Set(copies.map((c) => c.feedName))].join(", ");
+  return (
+    <div
+      className={`feed-chip color-${event.color} ${className}`}
+      title={`${event.title} — ${feeds}${event.location ? ` · ${event.location}` : ""}`}
+    >
+      {event.startTime && <span className="time">{compact ? formatTimeShort(event.startTime) : formatTime(event.startTime)}</span>}
+      <span className="title">{event.title}</span>
+      {copies.length > 1 && (
+        <span className="dupes" aria-label={`on ${copies.length} calendars`}>
+          ×{copies.length}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function DayItemChip({ item, compact, onOpenPerson }: { item: DayItem; compact: boolean; onOpenPerson?: () => void }) {
+  const cls = compact ? (item.allDay ? "m-allday" : "m-timed") : "";
+  if (item.kind === "entry") return <EntryChip entry={item.entry} shortTime={compact} className={cls} />;
+  if (item.kind === "feed") return <FeedChip item={item} compact={compact} className={cls} />;
+  return <PersonChip occasion={item.person} className={cls} onOpen={onOpenPerson} />;
+}
 
 export function MonthView({ anchor, entries, feedEvents, holidays, personDates = [], weekStart, onMoveEntry }: Props) {
   const selectDate = useUi((state) => state.selectDate);
@@ -72,10 +100,34 @@ export function MonthView({ anchor, entries, feedEvents, holidays, personDates =
     return map;
   }, [personDates]);
 
+  const itemsFor = (date: string) => buildDayItems(byDate.get(date) ?? [], feedByDate.get(date) ?? [], personByDate.get(date) ?? []);
+
+  // Rows that fit in one day cell. Cells are overflow:hidden with fixed-height
+  // rows, so their height only follows the viewport — never their contents.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [capacity, setCapacity] = useState(DEFAULT_CAPACITY);
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const measure = () => {
+      const cell = grid.querySelector<HTMLElement>(".day-cell");
+      if (!cell) return;
+      const style = getComputedStyle(cell);
+      const row = parseFloat(style.getPropertyValue("--month-row")) || 20;
+      const gap = parseFloat(style.rowGap) || 0;
+      const head = cell.querySelector<HTMLElement>(".day-head")?.offsetHeight ?? 24;
+      const room = cell.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom) - head;
+      const next = Math.max(1, Math.floor(room / (row + gap)));
+      setCapacity((prev) => (prev === next ? prev : next));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, [days.length]);
+
   const modalDate = dayModal;
-  const modalEntries = modalDate ? byDate.get(modalDate) ?? [] : [];
-  const modalFeeds = modalDate ? feedByDate.get(modalDate) ?? [] : [];
-  const modalPeople = modalDate ? personByDate.get(modalDate) ?? [] : [];
+  const modalItems = modalDate ? itemsFor(modalDate) : [];
 
   return (
     <div className="month-wrap">
@@ -84,17 +136,13 @@ export function MonthView({ anchor, entries, feedEvents, holidays, personDates =
           <span key={name}>{name}</span>
         ))}
       </div>
-      <div className="month-grid">
+      <div className="month-grid" ref={gridRef}>
         {days.map((day) => {
           const date = iso(day);
-          const dayEntries = byDate.get(date) ?? [];
-          const dayFeeds = feedByDate.get(date) ?? [];
-          const dayPeople = personByDate.get(date) ?? [];
+          const items = itemsFor(date);
           const isOutside = day.getMonth() !== anchor.getMonth();
-          const visible = dayEntries.slice(0, MAX_VISIBLE);
-          const visibleFeeds = dayFeeds.slice(0, Math.max(0, MAX_VISIBLE - visible.length));
-          const visiblePeople = dayPeople.slice(0, Math.max(0, MAX_VISIBLE - visible.length - visibleFeeds.length));
-          const hidden = dayEntries.length + dayFeeds.length + dayPeople.length - visible.length - visibleFeeds.length - visiblePeople.length;
+          const shown = items.slice(0, visibleCount(items.length, capacity));
+          const hidden = items.length - shown.length;
           return (
             <div
               key={date}
@@ -127,21 +175,8 @@ export function MonthView({ anchor, entries, feedEvents, holidays, personDates =
                   <Plus size={13} />
                 </button>
               </div>
-              {visible.map((entry) => (
-                <EntryChip key={entry.id} entry={entry} />
-              ))}
-              {visibleFeeds.map((event) => (
-                <div
-                  key={event.id}
-                  className={`feed-chip color-${event.color}`}
-                  title={`${event.title} — ${event.feedName}${event.location ? ` · ${event.location}` : ""}`}
-                >
-                  {event.startTime && <span className="time">{formatTime(event.startTime)}</span>}
-                  <span className="title">{event.title}</span>
-                </div>
-              ))}
-              {visiblePeople.map((p) => (
-                <PersonChip key={p.id} occasion={p} />
+              {shown.map((item) => (
+                <DayItemChip key={item.key} item={item} compact />
               ))}
               {hidden > 0 && (
                 <button
@@ -153,7 +188,7 @@ export function MonthView({ anchor, entries, feedEvents, holidays, personDates =
                     setDayModal(date);
                   }}
                 >
-                  {`+${hidden} more`}
+                  {`+${hidden}`}<span className="more-word"> more</span>
                 </button>
               )}
             </div>
@@ -180,25 +215,10 @@ export function MonthView({ anchor, entries, feedEvents, holidays, personDates =
               </button>
             </div>
             <div className="day-modal-list">
-              {modalEntries.map((entry) => (
-                <EntryChip key={entry.id} entry={entry} />
+              {modalItems.map((item) => (
+                <DayItemChip key={item.key} item={item} compact={false} onOpenPerson={() => setDayModal(null)} />
               ))}
-              {modalFeeds.map((event) => (
-                <div
-                  key={event.id}
-                  className={`feed-chip color-${event.color}`}
-                  title={`${event.title} — ${event.feedName}${event.location ? ` · ${event.location}` : ""}`}
-                >
-                  {event.startTime && <span className="time">{formatTime(event.startTime)}</span>}
-                  <span className="title">{event.title}</span>
-                </div>
-              ))}
-              {modalPeople.map((p) => (
-                <PersonChip key={p.id} occasion={p} onOpen={() => setDayModal(null)} />
-              ))}
-              {modalEntries.length === 0 && modalFeeds.length === 0 && modalPeople.length === 0 && (
-                <p className="panel-empty">Nothing on this day.</p>
-              )}
+              {modalItems.length === 0 && <p className="panel-empty">Nothing on this day.</p>}
             </div>
           </div>
         </div>

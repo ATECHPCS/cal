@@ -752,11 +752,14 @@ button {
 }
 
 .day-cell {
+  /* One fixed row height so MonthView can work out how many rows fit. */
+  --month-row: 20px;
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-height: 96px;
+  overflow: hidden;
   padding: 6px 6px 4px;
   border-right: 1px solid var(--border-3);
   border-bottom: 1px solid var(--border-3);
@@ -892,6 +895,104 @@ button {
 .more-link:hover {
   background: var(--hover-2);
   color: var(--text-1);
+}
+
+/* Month cells: every row is the same height; all-day items are solid colour
+   bars, timed items are a colour dot + time + title (ring dot = synced feed). */
+.month-wrap .month-grid .day-cell > .entry-chip,
+.month-wrap .month-grid .day-cell > .feed-chip,
+.month-wrap .month-grid .day-cell > .person-chip,
+.month-wrap .month-grid .day-cell > .more-link {
+  flex: none;
+  box-sizing: border-box;
+  height: var(--month-row);
+  min-height: 0;
+  padding-block: 0;
+  line-height: var(--month-row);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.month-wrap .month-grid .day-cell > .m-timed .time {
+  white-space: nowrap;
+}
+@media (max-width: 860px) {
+  /* Narrow cells: dot + title only; the day sheet shows the times. */
+  .month-wrap .month-grid .day-cell > .m-timed .time,
+  .month-wrap .month-grid .day-cell > .feed-chip .dupes {
+    display: none;
+  }
+  .month-wrap .month-grid .day-cell > .m-timed {
+    gap: 3px;
+    padding-inline: 1px;
+  }
+  .month-wrap .month-grid .day-cell > .m-allday {
+    padding-inline: 4px;
+  }
+  .month-wrap .month-grid .day-cell > .more-link {
+    padding-inline: 2px;
+  }
+  .more-word {
+    display: none;
+  }
+}
+.month-wrap .month-grid .day-cell > .m-allday {
+  gap: 4px;
+  padding-inline: 6px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--chip);
+  color: #14130f;
+  font-size: 11px;
+  font-weight: 600;
+}
+:root[data-theme="light"] .month-wrap .month-grid .day-cell > .m-allday {
+  color: #fff;
+}
+.month-wrap .month-grid .day-cell > .m-allday.done {
+  opacity: 0.55;
+}
+.month-wrap .month-grid .day-cell > .m-allday .time,
+.month-wrap .month-grid .day-cell > .m-allday .rep {
+  color: inherit;
+  opacity: 0.8;
+}
+.month-wrap .month-grid .day-cell > .m-timed {
+  gap: 5px;
+  padding-inline: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-1);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.month-wrap .month-grid .day-cell > .m-timed:hover {
+  background: var(--hover-2);
+  filter: none;
+}
+.month-wrap .month-grid .day-cell > .m-timed::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--chip);
+}
+.month-wrap .month-grid .day-cell > .feed-chip.m-timed::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--chip);
+}
+.month-wrap .month-grid .day-cell > .m-timed .time {
+  color: var(--text-3);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.feed-chip .dupes {
+  flex: none;
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.75;
 }
 
 /* ============ Time grid (week / day) ============ */
@@ -1116,6 +1217,7 @@ button {
   --chip: var(--c-slate);
   --chip-bg: rgb(138 137 127 / 0.16);
 }
+.color-slate { --chip: var(--c-slate); --chip-bg: rgb(138 137 127 / 0.16); }
 .color-mint { --chip: var(--c-mint); --chip-bg: rgb(47 158 110 / 0.15); }
 .color-rose { --chip: var(--c-rose); --chip-bg: rgb(201 123 155 / 0.17); }
 .color-amber { --chip: var(--c-amber); --chip-bg: rgb(201 150 34 / 0.17); }
