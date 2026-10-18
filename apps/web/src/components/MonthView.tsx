@@ -43,7 +43,7 @@ function FeedChip({ item, compact, className = "" }: { item: Extract<DayItem, { 
 
 function DayItemChip({ item, compact, onOpenPerson }: { item: DayItem; compact: boolean; onOpenPerson?: () => void }) {
   const cls = compact ? (item.allDay ? "m-allday" : "m-timed") : "";
-  if (item.kind === "entry") return <EntryChip entry={item.entry} shortTime={compact} className={cls} />;
+  if (item.kind === "entry") return <EntryChip entry={item.entry} shortTime={compact} checkbox className={cls} />;
   if (item.kind === "feed") return <FeedChip item={item} compact={compact} className={cls} />;
   return <PersonChip occasion={item.person} className={cls} onOpen={onOpenPerson} />;
 }
@@ -161,7 +161,20 @@ export function MonthView({ anchor, entries, feedEvents, holidays, personDates =
               })}
             >
               <div className="day-head">
-                <span className="day-num">{day.getDate()}</span>
+                <button
+                  type="button"
+                  className="day-num"
+                  aria-label={`Show everything on ${formatDayTitle(date)}`}
+                  title="Show the whole day"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    selectDate(date);
+                    setDayModal(date);
+                  }}
+                  onDoubleClick={(event) => event.stopPropagation()}
+                >
+                  {day.getDate()}
+                </button>
                 {holidayByDate.has(date) && <span className="holiday-label">{holidayByDate.get(date)}</span>}
                 <button
                   type="button"

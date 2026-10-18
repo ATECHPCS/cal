@@ -13,4 +13,5 @@ _(none yet)_
 - 2026-10-17: Cal's feed colours are `slate|mint|sky|violet|amber|orange|rose|red`; upstream passed `"iris"` for the Google feed, which the web palette doesn't know → use `paletteForHex` / a listed name. (hits: 1)
 - 2026-10-17: Month-view chip styles at `.month-grid .day-cell > .x` lost in dark mode to `:root[data-theme="dark"] .feed-chip` (same 0,3,0 specificity, declared later in styles.css) → scope month-cell overrides under `.month-wrap .month-grid .day-cell > …` (0,4,0) and screenshot both themes. (hits: 1)
 - 2026-10-17: `.color-slate` only set `--chip` for `.entry-chip`/`.tg-event` (plus a light-theme override), so slate feed/person chips had no `--chip` in dark mode and rendered invisible → every palette name needs a bare `.color-<name>` rule. (hits: 1)
+- 2026-10-17: Inserted new CSS into styles.css by anchoring on `.feed-chip .dupes {` → that string also matched a selector inside the `@media (max-width: 860px)` block, so the rules only applied on phones and spliced into a selector → anchor on a line-start match (`\n.selector {`) and grep the result's line number before building. (hits: 1)
 

@@ -11,7 +11,7 @@ import { useUi } from "../stores/ui";
 export function CalendarPage() {
   const { user, entries, feedEvents, holidays, people, settings, loadEntries, updateEntry, loadHolidays, loadFeeds, loadFeedEvents, loadPeople } =
     usePlanner();
-  const { view, anchor, hiddenTypes, hiddenFeeds } = useUi();
+  const { view, anchor, hiddenTypes, hiddenFeeds, hideCompleted } = useUi();
 
   const range = useMemo(() => rangeFor(view, anchor, settings.weekStart), [view, anchor, settings.weekStart]);
   const peopleOn = moduleOn(settings, "people");
@@ -42,7 +42,9 @@ export function CalendarPage() {
     void loadFeedEvents({ from: range.from, to: range.to });
   }, [user, range.from, range.to, feedsKey, loadFeedEvents]);
 
-  const visible = entries.filter((entry) => !hiddenTypes.has(entry.type));
+  const visible = entries.filter(
+    (entry) => !hiddenTypes.has(entry.type) && !(hideCompleted && entry.type === "task" && entry.completed),
+  );
   const visibleFeeds = feedEvents.filter((event) => !hiddenFeeds.has(event.feedId));
   const shownHolidays = settings.showHolidays ? holidays : [];
 

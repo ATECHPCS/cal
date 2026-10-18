@@ -30,6 +30,8 @@ interface UiState {
   sidebarOpen: boolean;
   hiddenTypes: Set<string>;
   hiddenFeeds: Set<string>;
+  /** Drop completed tasks from the calendar views. */
+  hideCompleted: boolean;
   setView: (view: CalendarView) => void;
   setAnchor: (date: Date) => void;
   shift: (direction: -1 | 1) => void;
@@ -45,6 +47,7 @@ interface UiState {
   closeSidebar: () => void;
   toggleType: (type: string) => void;
   toggleFeed: (id: string) => void;
+  toggleHideCompleted: () => void;
   applyDefaultView: (view: CalendarView | undefined) => void;
 }
 
@@ -54,17 +57,23 @@ const persisted = (() => {
       view?: CalendarView;
       hiddenTypes?: string[];
       hiddenFeeds?: string[];
+      hideCompleted?: boolean;
     };
   } catch {
     return {};
   }
 })();
 
-function persist(state: Pick<UiState, "view" | "hiddenTypes" | "hiddenFeeds">) {
+function persist(state: Pick<UiState, "view" | "hiddenTypes" | "hiddenFeeds" | "hideCompleted">) {
   try {
     localStorage.setItem(
       "cal:ui",
-      JSON.stringify({ view: state.view, hiddenTypes: [...state.hiddenTypes], hiddenFeeds: [...state.hiddenFeeds] }),
+      JSON.stringify({
+        view: state.view,
+        hiddenTypes: [...state.hiddenTypes],
+        hiddenFeeds: [...state.hiddenFeeds],
+        hideCompleted: state.hideCompleted,
+      }),
     );
   } catch {
     // no storage (tests, SSR)
@@ -86,6 +95,7 @@ export const useUi = create<UiState>((set, get) => ({
   sidebarOpen: false,
   hiddenTypes: new Set(persisted.hiddenTypes ?? []),
   hiddenFeeds: new Set(persisted.hiddenFeeds ?? []),
+  hideCompleted: persisted.hideCompleted === true,
 
   setView(view) {
     set({ view });
@@ -135,6 +145,10 @@ export const useUi = create<UiState>((set, get) => ({
     if (hiddenTypes.has(type)) hiddenTypes.delete(type);
     else hiddenTypes.add(type);
     set({ hiddenTypes });
+    persist(get());
+  },
+  toggleHideCompleted() {
+    set({ hideCompleted: !get().hideCompleted });
     persist(get());
   },
   toggleFeed(id) {

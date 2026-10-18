@@ -49,6 +49,14 @@ describe("ui store", () => {
     expect(useUi.getState().hiddenTypes.has("note")).toBe(false);
   });
 
+  it("toggles hiding completed tasks", () => {
+    useUi.setState({ hideCompleted: false });
+    useUi.getState().toggleHideCompleted();
+    expect(useUi.getState().hideCompleted).toBe(true);
+    useUi.getState().toggleHideCompleted();
+    expect(useUi.getState().hideCompleted).toBe(false);
+  });
+
   it("goToday resets anchor and selection", () => {
     useUi.getState().setAnchor(new Date(2027, 0, 1));
     useUi.getState().goToday();

@@ -12,11 +12,14 @@ export function EntryChip({
   entry,
   showTime = true,
   shortTime = false,
+  checkbox = false,
   className = "",
 }: {
   entry: Entry;
   showTime?: boolean;
   shortTime?: boolean;
+  /** Always show a tick box on tasks (not just on hover) so they can be ticked on touch screens. */
+  checkbox?: boolean;
   className?: string;
 }) {
   const openEdit = useUi((state) => state.openEdit);
@@ -24,11 +27,12 @@ export function EntryChip({
   const updateEntry = usePlanner((state) => state.updateEntry);
   const [dragging, setDragging] = useState(false);
   const TypeIcon = typeIcon[entry.type] ?? Check;
+  const showCheck = checkbox && entry.type === "task";
 
   return (
     <button
       type="button"
-      className={`entry-chip color-${entry.color} ${entry.completed ? "done" : ""} ${dragging ? "dragging" : ""} ${className}`}
+      className={`entry-chip color-${entry.color} ${entry.completed ? "done" : ""} ${dragging ? "dragging" : ""} ${showCheck ? "has-check" : ""} ${className}`}
       draggable
       onDragStart={(event) => {
         setDragging(true);
@@ -50,20 +54,38 @@ export function EntryChip({
       }}
       title={entry.title}
     >
-      <span className="tick" onClick={(e) => e.stopPropagation()}>
-        {entry.type === "task" && (
-          <TypeIcon
-            size={11}
-            strokeWidth={3}
-            style={{ cursor: "pointer" }}
-            onClick={(e) => {
-              e.stopPropagation();
-              void updateEntry(entry.id, { completed: !entry.completed });
-            }}
-          />
-        )}
-      </span>
-      {showTime && entry.startTime && <span className="time">{shortTime ? formatTimeShort(entry.startTime) : formatTime(entry.startTime)}</span>}
+      {showCheck ? (
+        <span
+          role="checkbox"
+          aria-checked={entry.completed}
+          aria-label={entry.completed ? `Reopen ${entry.title}` : `Complete ${entry.title}`}
+          className={`chip-check ${entry.completed ? "on" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            void updateEntry(entry.id, { completed: !entry.completed });
+          }}
+          onDoubleClick={(e) => e.stopPropagation()}
+        >
+          {entry.completed && <Check size={9} strokeWidth={3.5} />}
+        </span>
+      ) : (
+        <span className="tick" onClick={(e) => e.stopPropagation()}>
+          {entry.type === "task" && (
+            <TypeIcon
+              size={11}
+              strokeWidth={3}
+              style={{ cursor: "pointer" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                void updateEntry(entry.id, { completed: !entry.completed });
+              }}
+            />
+          )}
+        </span>
+      )}
+      {showTime && entry.startTime && (
+        <span className="time">{shortTime ? formatTimeShort(entry.startTime) : formatTime(entry.startTime)}</span>
+      )}
       <span className="title">{entry.title}</span>
       {entry.recur !== "none" && <Repeat size={10} className="rep" />}
       {entry.type === "link" && <Link2 size={10} className="rep" />}

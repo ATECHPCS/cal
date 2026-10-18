@@ -987,6 +987,53 @@ button {
   font-size: 10.5px;
   font-weight: 600;
 }
+/* Day number opens the full-day list. */
+.day-head .day-num {
+  cursor: pointer;
+  transition: background 120ms var(--ease-out);
+}
+.day-head .day-num:hover {
+  background: var(--hover-2);
+  color: var(--text-1);
+}
+.day-cell.today .day-head .day-num:hover {
+  background: var(--accent-strong);
+  color: var(--on-accent);
+}
+
+/* Always-visible task tick box (month cells + day list). */
+.chip-check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--chip);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.chip-check:hover {
+  background: color-mix(in srgb, var(--chip) 25%, transparent);
+}
+.chip-check.on {
+  background: var(--chip);
+  color: #fff;
+}
+.month-wrap .month-grid .day-cell > .m-timed.has-check::before {
+  display: none;
+}
+.month-wrap .month-grid .day-cell > .m-allday .chip-check {
+  border-color: currentColor;
+}
+.month-wrap .month-grid .day-cell > .m-allday .chip-check.on {
+  background: none;
+  color: inherit;
+}
+.day-modal-list .chip-check {
+  width: 14px;
+  height: 14px;
+}
+
 .feed-chip .dupes {
   flex: none;
   margin-left: auto;

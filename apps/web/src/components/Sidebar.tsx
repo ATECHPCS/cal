@@ -144,6 +144,8 @@ export function Sidebar() {
   const hiddenFeeds = useUi((state) => state.hiddenFeeds);
   const toggleType = useUi((state) => state.toggleType);
   const toggleFeed = useUi((state) => state.toggleFeed);
+  const hideCompleted = useUi((state) => state.hideCompleted);
+  const toggleHideCompleted = useUi((state) => state.toggleHideCompleted);
   const sidebarOpen = useUi((state) => state.sidebarOpen);
   const closeSidebar = useUi((state) => state.closeSidebar);
 
@@ -222,6 +224,16 @@ export function Sidebar() {
               <span className="count">{counts[type]}</span>
             </button>
           ))}
+          <button
+            type="button"
+            className={`filter-item ${hideCompleted ? "off" : ""}`}
+            onClick={toggleHideCompleted}
+            title={hideCompleted ? "Show completed tasks" : "Hide completed tasks"}
+          >
+            <span className="swatch" style={{ "--swatch": "var(--c-slate)" } as React.CSSProperties} />
+            Completed tasks
+            <span className="count">{hideCompleted ? "hidden" : "shown"}</span>
+          </button>
           <button
             type="button"
             className={`filter-item ${settings.showHolidays ? "" : "off"}`}
