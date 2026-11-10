@@ -867,7 +867,8 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.entry-chip.done .title {
+.entry-chip.done .title,
+.feed-chip.done .title {
   text-decoration: line-through;
   opacity: 0.55;
 }

@@ -28,6 +28,25 @@ import { ApiError } from "@cal/api-client";
 import { enqueue, isOfflineError, newTempId, readQueue, writeQueue } from "../lib/opqueue";
 import { clearImport, isLocalMode, markLocalMode, wantsImport } from "../lib/local";
 import { nativeMail } from "../lib/mail";
+import { applyTodoistOverrides, liveOverrides, type TodoistOverrides } from "../lib/todoist";
+
+const TODOIST_KEY = "cal:todoist-overrides";
+
+function readTodoistOverrides(): TodoistOverrides {
+  try {
+    return liveOverrides(JSON.parse(localStorage.getItem(TODOIST_KEY) ?? "{}") as TodoistOverrides, Date.now());
+  } catch {
+    return {};
+  }
+}
+
+function writeTodoistOverrides(overrides: TodoistOverrides) {
+  try {
+    localStorage.setItem(TODOIST_KEY, JSON.stringify(overrides));
+  } catch {
+    // Overrides only bridge feed lag; losing them just shows the feed's state.
+  }
+}
 import { useUi } from "./ui";
 
 // Synthetic identity for local mode — there is no account, just this device.
@@ -96,6 +115,9 @@ interface PlannerState {
   removeAccount: (id: string) => Promise<void>;
   syncAccount: (id: string) => Promise<void>;
   loadFeedEvents: (params: { from: string; to: string }) => Promise<void>;
+  todoistEnabled: boolean;
+  loadTodoistStatus: () => Promise<void>;
+  setTodoistDone: (taskId: string, done: boolean) => Promise<void>;
   addFeed: (input: { name: string; url: string; color?: string; kind?: string }) => Promise<boolean>;
   removeFeed: (id: string) => Promise<void>;
   refreshFeed: (id: string) => Promise<void>;
@@ -117,6 +139,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   mode: isLocalMode() ? "local" : "server",
   entries: readCachedEntries(),
   feedEvents: [],
+  todoistEnabled: false,
   feeds: [],
   people: [],
   accounts: [],
@@ -481,9 +504,30 @@ export const usePlanner = create<PlannerState>((set, get) => ({
     }
     try {
       const feedEvents = await get().api.feedEvents(params);
-      set({ feedEvents });
+      set({ feedEvents: applyTodoistOverrides(feedEvents, readTodoistOverrides()) });
     } catch {
       // Feeds are a cache mirror — offline just shows fewer external events.
+    }
+  },
+
+  async loadTodoistStatus() {
+    try {
+      const { enabled } = await get().api.todoistStatus();
+      set({ todoistEnabled: enabled });
+    } catch {
+      set({ todoistEnabled: false });
+    }
+  },
+
+  async setTodoistDone(taskId, done) {
+    const before = get().feedEvents;
+    set({ feedEvents: applyTodoistOverrides(before, { [taskId]: { done, at: Date.now() } }) });
+    try {
+      await get().api.todoistSetDone(taskId, done);
+      writeTodoistOverrides({ ...readTodoistOverrides(), [taskId]: { done, at: Date.now() } });
+    } catch {
+      set({ feedEvents: before });
+      get().toast(done ? "Couldn't complete the Todoist task" : "Couldn't reopen the Todoist task");
     }
   },
 

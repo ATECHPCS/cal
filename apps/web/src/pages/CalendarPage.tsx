@@ -30,6 +30,7 @@ export function CalendarPage() {
   useEffect(() => {
     if (!user) return;
     void loadFeeds();
+    void usePlanner.getState().loadTodoistStatus();
   }, [user, loadFeeds]);
 
   useEffect(() => {

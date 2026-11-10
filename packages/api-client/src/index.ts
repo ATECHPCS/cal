@@ -656,6 +656,14 @@ export class CalApi {
     await this.request<void>(`/feeds/${id}/refresh`, { method: "POST" });
   }
 
+  async todoistStatus(): Promise<{ enabled: boolean }> {
+    return this.request<{ enabled: boolean }>("/todoist/status");
+  }
+
+  async todoistSetDone(taskId: string, done: boolean): Promise<{ id: string; done: boolean }> {
+    return this.request(`/todoist/tasks/${encodeURIComponent(taskId)}/done`, { method: "POST", body: { done } });
+  }
+
   async feedEvents(params: { from: string; to: string }): Promise<FeedEvent[]> {
     const search = new URLSearchParams({ from: params.from, to: params.to });
     return this.request<FeedEvent[]>(`/feed-events?${search.toString()}`);

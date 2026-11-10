@@ -107,6 +107,8 @@ func New(st *store.Store, holidays *calendar.HolidayCache) *gin.Engine {
 	authed.DELETE("/feeds/:id", server.deleteFeed)
 	authed.POST("/feeds/:id/refresh", server.refreshFeed)
 	authed.GET("/feed-events", server.feedEvents)
+	authed.GET("/todoist/status", server.todoistStatus)
+	authed.POST("/todoist/tasks/:id/done", newRateLimiter(60, time.Minute), server.todoistSetDone)
 	authed.POST("/import", server.importICS)
 	authed.POST("/settings/widget-token", server.rotateWidgetToken)
 	authed.POST("/settings/api-token", server.rotateApiToken)

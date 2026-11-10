@@ -1,10 +1,12 @@
 import type { Entry, FeedEvent, Holiday } from "@cal/api-client";
-import { Plus, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { draggedEntryId, dropTargetProps } from "../lib/dnd";
 import { formatDayTitle, formatTime, formatTimeShort, iso, monthMatrix, timeToMinutes, todayIso, weekdayNames, type WeekStartPref } from "../lib/date";
 import type { PersonOccurrence } from "../lib/people";
-import { buildDayItems, visibleCount, type DayItem } from "../lib/dayItems";
+import { buildDayItems, isCompletedFeedTask, visibleCount, type DayItem } from "../lib/dayItems";
+import { stripDoneMark, todoistTaskId } from "../lib/todoist";
+import { usePlanner } from "../stores/planner";
 import { useUi } from "../stores/ui";
 import { EntryChip } from "./EntryChip";
 import { PersonChip } from "./PersonChip";
@@ -25,13 +27,33 @@ const DEFAULT_CAPACITY = 4;
 function FeedChip({ item, compact, className = "" }: { item: Extract<DayItem, { kind: "feed" }>; compact: boolean; className?: string }) {
   const { event, copies } = item;
   const feeds = [...new Set(copies.map((c) => c.feedName))].join(", ");
+  const todoistEnabled = usePlanner((state) => state.todoistEnabled);
+  const setTodoistDone = usePlanner((state) => state.setTodoistDone);
+  const taskId = todoistEnabled ? todoistTaskId(event) : undefined;
+  const done = isCompletedFeedTask(event);
+  const title = taskId ? stripDoneMark(event.title) : event.title;
   return (
     <div
-      className={`feed-chip color-${event.color} ${className}`}
+      className={`feed-chip color-${event.color} ${taskId ? "has-check" : ""} ${taskId && done ? "done" : ""} ${className}`}
       title={`${event.title} — ${feeds}${event.location ? ` · ${event.location}` : ""}`}
     >
+      {taskId && (
+        <span
+          role="checkbox"
+          aria-checked={done}
+          aria-label={done ? `Reopen ${title} in Todoist` : `Complete ${title} in Todoist`}
+          className={`chip-check ${done ? "on" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            void setTodoistDone(taskId, !done);
+          }}
+          onDoubleClick={(e) => e.stopPropagation()}
+        >
+          {done && <Check size={9} strokeWidth={3.5} />}
+        </span>
+      )}
       {event.startTime && <span className="time">{compact ? formatTimeShort(event.startTime) : formatTime(event.startTime)}</span>}
-      <span className="title">{event.title}</span>
+      <span className="title">{title}</span>
       {copies.length > 1 && (
         <span className="dupes" aria-label={`on ${copies.length} calendars`}>
           ×{copies.length}
