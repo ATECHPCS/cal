@@ -1,4 +1,4 @@
-import type { FeedEvent } from "@cal/api-client";
+import type { FeedEvent, TodoistProject, TodoistTask } from "@cal/api-client";
 
 // Todoist tasks arrive through the Google Calendar feed. Each event's
 // description holds the task URL, and finished tasks carry a leading check
@@ -37,4 +37,43 @@ export function applyTodoistOverrides(events: FeedEvent[], overrides: TodoistOve
     const o = id ? overrides[id] : undefined;
     return o ? { ...event, title: withDoneMark(event.title, o.done) } : event;
   });
+}
+
+export interface TodoistGroup {
+  project: TodoistProject;
+  rows: { task: TodoistTask; depth: number }[];
+}
+
+// Todoist content is light markdown; the panel shows plain text.
+export function plainTaskText(content: string): string {
+  return content.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_`]{1,2}([^*_`]+)[*_`]{1,2}/g, "$1");
+}
+
+// Groups open tasks by project (inbox first, then Todoist's project order),
+// each subtask directly under its parent, siblings in Todoist's order.
+export function groupTodoistTasks(tasks: TodoistTask[], projects: TodoistProject[]): TodoistGroup[] {
+  const ids = new Set(tasks.map((t) => t.id));
+  const children = new Map<string, TodoistTask[]>();
+  for (const task of tasks) {
+    const key = task.parentId && ids.has(task.parentId) ? task.parentId : `project:${task.projectId}`;
+    children.set(key, [...(children.get(key) ?? []), task]);
+  }
+  for (const list of children.values()) list.sort((a, b) => a.order - b.order);
+
+  const walk = (key: string, depth: number, rows: TodoistGroup["rows"]) => {
+    for (const task of children.get(key) ?? []) {
+      rows.push({ task, depth });
+      walk(task.id, depth + 1, rows);
+    }
+    return rows;
+  };
+
+  const known = new Map(projects.map((p) => [p.id, p]));
+  for (const task of tasks) {
+    if (!known.has(task.projectId)) known.set(task.projectId, { id: task.projectId, name: task.projectName || "Other", inbox: false, order: Number.MAX_SAFE_INTEGER });
+  }
+  return [...known.values()]
+    .sort((a, b) => Number(b.inbox) - Number(a.inbox) || a.order - b.order)
+    .map((project) => ({ project, rows: walk(`project:${project.id}`, 0, []) }))
+    .filter((group) => group.rows.length > 0);
 }

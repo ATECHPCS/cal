@@ -32,6 +32,8 @@ interface UiState {
   hiddenFeeds: Set<string>;
   /** Drop completed tasks from the calendar views. */
   hideCompleted: boolean;
+  /** Todoist task panel beside the calendar. */
+  todoistPanel: boolean;
   setView: (view: CalendarView) => void;
   setAnchor: (date: Date) => void;
   shift: (direction: -1 | 1) => void;
@@ -48,6 +50,7 @@ interface UiState {
   toggleType: (type: string) => void;
   toggleFeed: (id: string) => void;
   toggleHideCompleted: () => void;
+  toggleTodoistPanel: () => void;
   applyDefaultView: (view: CalendarView | undefined) => void;
 }
 
@@ -58,13 +61,14 @@ const persisted = (() => {
       hiddenTypes?: string[];
       hiddenFeeds?: string[];
       hideCompleted?: boolean;
+      todoistPanel?: boolean;
     };
   } catch {
     return {};
   }
 })();
 
-function persist(state: Pick<UiState, "view" | "hiddenTypes" | "hiddenFeeds" | "hideCompleted">) {
+function persist(state: Pick<UiState, "view" | "hiddenTypes" | "hiddenFeeds" | "hideCompleted" | "todoistPanel">) {
   try {
     localStorage.setItem(
       "cal:ui",
@@ -73,6 +77,7 @@ function persist(state: Pick<UiState, "view" | "hiddenTypes" | "hiddenFeeds" | "
         hiddenTypes: [...state.hiddenTypes],
         hiddenFeeds: [...state.hiddenFeeds],
         hideCompleted: state.hideCompleted,
+        todoistPanel: state.todoistPanel,
       }),
     );
   } catch {
@@ -96,6 +101,7 @@ export const useUi = create<UiState>((set, get) => ({
   hiddenTypes: new Set(persisted.hiddenTypes ?? []),
   hiddenFeeds: new Set(persisted.hiddenFeeds ?? []),
   hideCompleted: persisted.hideCompleted === true,
+  todoistPanel: persisted.todoistPanel === true,
 
   setView(view) {
     set({ view });
@@ -149,6 +155,10 @@ export const useUi = create<UiState>((set, get) => ({
   },
   toggleHideCompleted() {
     set({ hideCompleted: !get().hideCompleted });
+    persist(get());
+  },
+  toggleTodoistPanel() {
+    set({ todoistPanel: !get().todoistPanel });
     persist(get());
   },
   toggleFeed(id) {

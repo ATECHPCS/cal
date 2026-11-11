@@ -108,6 +108,7 @@ func New(st *store.Store, holidays *calendar.HolidayCache) *gin.Engine {
 	authed.POST("/feeds/:id/refresh", server.refreshFeed)
 	authed.GET("/feed-events", server.feedEvents)
 	authed.GET("/todoist/status", server.todoistStatus)
+	authed.GET("/todoist/tasks", server.todoistTasks)
 	authed.POST("/todoist/tasks/:id/done", newRateLimiter(60, time.Minute), server.todoistSetDone)
 	authed.POST("/import", server.importICS)
 	authed.POST("/settings/widget-token", server.rotateWidgetToken)

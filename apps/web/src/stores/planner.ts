@@ -11,6 +11,8 @@ import {
   type Person,
   type PersonInput,
   type Settings,
+  type TodoistProject,
+  type TodoistTask,
   type User,
   type Workspace,
 } from "@cal/api-client";
@@ -116,7 +118,12 @@ interface PlannerState {
   syncAccount: (id: string) => Promise<void>;
   loadFeedEvents: (params: { from: string; to: string }) => Promise<void>;
   todoistEnabled: boolean;
+  todoistTasks: TodoistTask[];
+  todoistProjects: TodoistProject[];
+  todoistLoading: boolean;
+  todoistError?: string;
   loadTodoistStatus: () => Promise<void>;
+  loadTodoistTasks: () => Promise<void>;
   setTodoistDone: (taskId: string, done: boolean) => Promise<void>;
   addFeed: (input: { name: string; url: string; color?: string; kind?: string }) => Promise<boolean>;
   removeFeed: (id: string) => Promise<void>;
@@ -140,6 +147,9 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   entries: readCachedEntries(),
   feedEvents: [],
   todoistEnabled: false,
+  todoistTasks: [],
+  todoistProjects: [],
+  todoistLoading: false,
   feeds: [],
   people: [],
   accounts: [],
@@ -519,14 +529,30 @@ export const usePlanner = create<PlannerState>((set, get) => ({
     }
   },
 
+  async loadTodoistTasks() {
+    set({ todoistLoading: true, todoistError: undefined });
+    try {
+      const { tasks, projects } = await get().api.todoistTasks();
+      set({ todoistTasks: tasks, todoistProjects: projects, todoistLoading: false });
+    } catch {
+      set({ todoistLoading: false, todoistError: "Couldn't load Todoist tasks" });
+    }
+  },
+
   async setTodoistDone(taskId, done) {
     const before = get().feedEvents;
-    set({ feedEvents: applyTodoistOverrides(before, { [taskId]: { done, at: Date.now() } }) });
+    const beforeTasks = get().todoistTasks;
+    set({
+      feedEvents: applyTodoistOverrides(before, { [taskId]: { done, at: Date.now() } }),
+      // A finished task leaves the open list, and so do its subtasks (Todoist closes them too).
+      todoistTasks: done ? beforeTasks.filter((t) => t.id !== taskId && t.parentId !== taskId) : beforeTasks,
+    });
     try {
       await get().api.todoistSetDone(taskId, done);
       writeTodoistOverrides({ ...readTodoistOverrides(), [taskId]: { done, at: Date.now() } });
+      if (!done && get().todoistTasks.length > 0) void get().loadTodoistTasks();
     } catch {
-      set({ feedEvents: before });
+      set({ feedEvents: before, todoistTasks: beforeTasks });
       get().toast(done ? "Couldn't complete the Todoist task" : "Couldn't reopen the Todoist task");
     }
   },

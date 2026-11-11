@@ -290,6 +290,26 @@ export interface FeedEvent {
   details?: string;
 }
 
+export interface TodoistTask {
+  id: string;
+  content: string;
+  projectId: string;
+  projectName: string;
+  parentId?: string;
+  /** Due day as YYYY-MM-DD; absent for undated tasks. */
+  due?: string;
+  /** Todoist priority: 4 is p1 (urgent), 1 is p4 (none). */
+  priority: number;
+  order: number;
+}
+
+export interface TodoistProject {
+  id: string;
+  name: string;
+  inbox: boolean;
+  order: number;
+}
+
 export interface Holiday {
   id: string;
   name: string;
@@ -658,6 +678,10 @@ export class CalApi {
 
   async todoistStatus(): Promise<{ enabled: boolean }> {
     return this.request<{ enabled: boolean }>("/todoist/status");
+  }
+
+  async todoistTasks(): Promise<{ tasks: TodoistTask[]; projects: TodoistProject[] }> {
+    return this.request<{ tasks: TodoistTask[]; projects: TodoistProject[] }>("/todoist/tasks");
   }
 
   async todoistSetDone(taskId: string, done: boolean): Promise<{ id: string; done: boolean }> {

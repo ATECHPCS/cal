@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { MonthView } from "../components/MonthView";
 import { TimeGridView } from "../components/TimeGridView";
+import { TodoistPanel } from "../components/TodoistPanel";
 import { TopBar } from "../components/TopBar";
 import { rangeFor } from "../lib/date";
 import { isCompletedFeedTask } from "../lib/dayItems";
@@ -12,7 +13,8 @@ import { useUi } from "../stores/ui";
 export function CalendarPage() {
   const { user, entries, feedEvents, holidays, people, settings, loadEntries, updateEntry, loadHolidays, loadFeeds, loadFeedEvents, loadPeople } =
     usePlanner();
-  const { view, anchor, hiddenTypes, hiddenFeeds, hideCompleted } = useUi();
+  const { view, anchor, hiddenTypes, hiddenFeeds, hideCompleted, todoistPanel } = useUi();
+  const todoistEnabled = usePlanner((state) => state.todoistEnabled);
 
   const range = useMemo(() => rangeFor(view, anchor, settings.weekStart), [view, anchor, settings.weekStart]);
   const peopleOn = moduleOn(settings, "people");
@@ -68,28 +70,33 @@ export function CalendarPage() {
   return (
     <>
       <TopBar weekStart={settings.weekStart} />
-      {view === "month" ? (
-        <MonthView
-          anchor={anchor}
-          entries={visible}
-          feedEvents={visibleFeeds}
-          holidays={shownHolidays}
-          personDates={personDates}
-          weekStart={settings.weekStart}
-          onMoveEntry={(id, date) => void updateEntry(id, { date })}
-        />
-      ) : (
-        <TimeGridView
-          view={view}
-          anchor={anchor}
-          entries={visible}
-          feedEvents={visibleFeeds}
-          holidays={shownHolidays}
-          personDates={personDates}
-          weekStart={settings.weekStart}
-          onMoveEntry={(id, patch) => void updateEntry(id, patch)}
-        />
-      )}
+      <div className="cal-body">
+        <div className="cal-view">
+          {view === "month" ? (
+            <MonthView
+              anchor={anchor}
+              entries={visible}
+              feedEvents={visibleFeeds}
+              holidays={shownHolidays}
+              personDates={personDates}
+              weekStart={settings.weekStart}
+              onMoveEntry={(id, date) => void updateEntry(id, { date })}
+            />
+          ) : (
+            <TimeGridView
+              view={view}
+              anchor={anchor}
+              entries={visible}
+              feedEvents={visibleFeeds}
+              holidays={shownHolidays}
+              personDates={personDates}
+              weekStart={settings.weekStart}
+              onMoveEntry={(id, patch) => void updateEntry(id, patch)}
+            />
+          )}
+        </div>
+        {todoistEnabled && todoistPanel && <TodoistPanel />}
+      </div>
     </>
   );
 }

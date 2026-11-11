@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Menu, Rows3, Search, WifiOff } from "lucide-react";
+import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, ListChecks, Menu, Rows3, Search, WifiOff } from "lucide-react";
 import { formatHeading, type CalendarView, type WeekStartPref } from "../lib/date";
 import { usePlanner } from "../stores/planner";
 import { useUi } from "../stores/ui";
@@ -19,6 +19,9 @@ export function TopBar({ weekStart }: { weekStart: WeekStartPref }) {
   const toggleSidebar = useUi((state) => state.toggleSidebar);
   const offline = usePlanner((state) => state.offline);
   const pendingOps = usePlanner((state) => state.pendingOps);
+  const todoistEnabled = usePlanner((state) => state.todoistEnabled);
+  const todoistPanel = useUi((state) => state.todoistPanel);
+  const toggleTodoistPanel = useUi((state) => state.toggleTodoistPanel);
 
   return (
     <header className="topbar">
@@ -53,6 +56,18 @@ export function TopBar({ weekStart }: { weekStart: WeekStartPref }) {
           </button>
         ))}
       </div>
+      {todoistEnabled && (
+        <button
+          type="button"
+          className={`icon-btn ${todoistPanel ? "active" : ""}`}
+          aria-label={todoistPanel ? "Hide Todoist tasks" : "Show Todoist tasks"}
+          aria-pressed={todoistPanel}
+          title="Todoist"
+          onClick={toggleTodoistPanel}
+        >
+          <ListChecks size={16} />
+        </button>
+      )}
       <button type="button" className="icon-btn hide-sm" aria-label="Search" onClick={openPalette}>
         <Search size={16} />
       </button>

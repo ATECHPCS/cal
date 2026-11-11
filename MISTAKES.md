@@ -4,7 +4,7 @@
 _(none yet)_
 
 ## Patterns (promote at 3 hits)
-_(none yet)_
+- Ran `prettier --write` on a whole existing file (EntryChip 2026-10-17, CalendarPage 2026-11-11) → the repo is not prettier-clean, so it reflowed unrelated lines into the diff → only run prettier on NEW files; edit existing files by hand and `git diff` for stray reflow before committing. (hits: 2)
 
 ## Observations (first sightings)
 - 2026-10-17: Derived an HMAC signing key via `store.Encrypt` (upstream `oauthState`) → Encrypt uses a random nonce, so the "key" differs per call and every OAuth callback failed `invalid state` → derive signing keys with `Store.MACKey(ctx, purpose)` (sha256 of the persisted crypto key + purpose). (hits: 1)
